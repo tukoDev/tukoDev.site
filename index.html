@@ -187,6 +187,7 @@
       .github-card .social-icon { color: #f1f1f1; }
       .youtube-card .social-icon { color: #ff6b6b; }
       .spotify-card .social-icon { color: #1db954; }
+      .crypto-card .social-icon { color: #627eea; }
 
       .social-card:hover .social-icon {
         transform: scale(1.2) rotate(5deg);
@@ -206,7 +207,8 @@
         line-height: 1.6;
       }
 
-      .social-link {
+      .social-link 
+      {
         display: inline-flex;
         align-items: center;
         gap: 10px;
@@ -225,6 +227,84 @@
         transform: translateY(-2px);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
       }
+
+      .crypto-bar {
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: 50px;
+        padding: 15px 30px;
+        margin: 30px auto 0;
+        max-width: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        box-shadow: var(--shadow);
+        animation: fadeInUp 1s ease-out 0.4s both;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .crypto-bar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        transition: all 0.6s ease;
+      }
+
+      .crypto-bar:hover::before {
+        left: 100%;
+      }
+
+      .crypto-icon {
+        font-size: 1.5rem;
+        color: #627eea;
+        text-shadow: 0 0 10px rgba(98, 126, 234, 0.3);
+      }
+
+      .crypto-price {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #627eea;
+        text-shadow: 0 0 10px rgba(98, 126, 234, 0.3);
+      }
+
+      .crypto-change {
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 4px 12px;
+        border-radius: 15px;
+        display: inline-block;
+      }
+
+      .crypto-change.positive {
+        color: #00ff88;
+        background: rgba(0, 255, 136, 0.1);
+      }
+
+      .crypto-change.negative {
+        color: #ff4757;
+        background: rgba(255, 71, 87, 0.1);
+      }
+
+      .crypto-loading {
+        color: rgba(255, 255, 255, 0.7);
+        font-style: italic;
+        font-size: 1rem;
+      }
+
+      .crypto-info {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 8px;
+        text-align: center;
+      
+  }
 
 
 
@@ -293,6 +373,23 @@
         }
       }
 
+      @media (max-width: 768px) {
+        .crypto-bar {
+          flex-direction: column;
+          gap: 10px;
+          padding: 12px 20px;
+          margin: 20px auto 0;
+        }
+        
+        .crypto-icon {
+          font-size: 1.2rem;
+        }
+        
+        .crypto-price {
+          font-size: 1.1rem;
+        }
+      }
+
       @media (max-width: 480px) {
         .header {
           padding: 60px 15px 30px;
@@ -306,6 +403,21 @@
           width: 120px;
           height: 120px;
         }
+        
+        .crypto-bar {
+          padding: 10px 15px;
+          margin: 15px auto 0;
+          max-width: 90%;
+        }
+        
+        .crypto-price {
+          font-size: 1rem;
+        }
+        
+        .crypto-change {
+          font-size: 0.8rem;
+          padding: 3px 8px;
+        }
       }
     </style>
   </head>
@@ -317,6 +429,15 @@
       </div>
       <h1 class="main-title">TukoDev</h1>
       <p class="subtitle">Geliştirici</p>
+      <div class="crypto-bar">
+        <i class="fab fa-ethereum crypto-icon"></i>
+        <div id="crypto-content">
+          <div class="crypto-loading">Fiyat yükleniyor...</div>
+        </div>
+      </div>
+      <div class="crypto-info">
+        Binance • Son güncelleme: <span id="last-update">-</span>
+      </div>
     </header>
 
     <section class="social-section">
@@ -340,6 +461,7 @@
             Kanalı Ziyaret Et
           </a>
         </div>
+
         <div class="social-card spotify-card">
           <i class="fab fa-spotify social-icon"></i>
           <h3 class="social-title">Spotify</h3>
@@ -355,7 +477,6 @@
     <footer class="footer">
       <p class="footer-text">© 2025 TukoDev. Tüm hakları saklıdır.</p>
     </footer>
-
     <script>
       function createParticles() {
         const particlesContainer = document.querySelector('.particles');
@@ -384,6 +505,54 @@
             behavior: 'smooth'
           });
         });
+      });
+      async function fetchEthereumPrice() {
+        try {
+          const response = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT');
+          const data = await response.json();
+          
+          if (data.lastPrice && data.priceChangePercent) {
+            const price = parseFloat(data.lastPrice);
+            const change24h = parseFloat(data.priceChangePercent);
+            
+            updateCryptoDisplay(price, change24h);
+          }
+        } catch (error) {
+          console.error('Ethereum fiyatı alınamadı:', error);
+          document.getElementById('crypto-content').innerHTML = 
+            '<div class="crypto-loading">Bağlantı hatası</div>';
+        }
+      }
+      function updateCryptoDisplay(price, change24h) {
+        const cryptoContent = document.getElementById('crypto-content');
+        const lastUpdate = document.getElementById('last-update');
+        
+        const formattedPrice = new Intl.NumberFormat('tr-TR', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 4
+        }).format(price);
+        
+        const changeClass = change24h >= 0 ? 'positive' : 'negative';
+        const changeSymbol = change24h >= 0 ? '+' : '';
+        const formattedChange = `${changeSymbol}${change24h.toFixed(2)}%`;
+        
+        cryptoContent.innerHTML = `
+          <span class="crypto-price">${formattedPrice}</span>
+          <span class="crypto-change ${changeClass}">${formattedChange}</span>
+        `;
+        
+        const now = new Date();
+        lastUpdate.textContent = now.toLocaleTimeString('tr-TR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        fetchEthereumPrice();
+        setInterval(fetchEthereumPrice, 5000);
       });
     </script>
   </body>
